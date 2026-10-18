@@ -18,7 +18,7 @@ st.set_page_config(
     page_title="Escape the Chapter",
     page_icon="🔐",
     layout="wide",
-    initial_sidebar_state="expanded",
+    initial_sidebar_state="collapsed",
 )
 
 # ---------- Visual design ----------
@@ -74,7 +74,40 @@ st.markdown(
     }
     div.stButton > button:hover { border-color: #f6c86a; transform: translateY(-1px); }
     [data-testid="stSidebar"] { background: #0a1422; border-right: 1px solid rgba(190,210,235,.12); }
-    .small-note { font-size: .78rem; color: #9caec3; }
+    .small-note { font-size: .82rem; color: #aab9cc; line-height: 1.5; }
+
+    /* Readability and spacing improvements */
+    [data-testid="stSidebar"] { background: #0a1422; }
+    [data-testid="stTextArea"] textarea {
+      background: #f7f9fc !important;
+      color: #172338 !important;
+      border: 1px solid #cbd5e1 !important;
+      border-radius: 12px !important;
+      line-height: 1.55 !important;
+      font-size: 0.98rem !important;
+    }
+    [data-testid="stTextInput"] input,
+    [data-testid="stSelectbox"] div[data-baseweb="select"] > div {
+      border-radius: 11px !important;
+    }
+    [data-testid="stMarkdownContainer"] p,
+    [data-testid="stMarkdownContainer"] li {
+      line-height: 1.65;
+    }
+    [data-testid="stMetric"] {
+      background: rgba(20, 37, 59, .72);
+      border: 1px solid rgba(190,210,235,.13);
+      padding: .9rem 1rem;
+      border-radius: 14px;
+    }
+    div[data-testid="stVerticalBlock"] > div:has(> .hero) { margin-bottom: 1.25rem; }
+    .hero { padding: 1.8rem 2rem; }
+    .panel { padding: 1.25rem 1.35rem; }
+    .level-card { padding: 1.15rem; }
+    @media (max-width: 900px) {
+      .hero { padding: 1.25rem; }
+      .hero-title { font-size: 2.2rem; }
+    }
     </style>
     """,
     unsafe_allow_html=True,
@@ -343,7 +376,7 @@ st.markdown(
 
 # ---------- Input / mission creation ----------
 if st.session_state.questions is None:
-    left, right = st.columns([1.45, 1])
+    left, right = st.columns([1.25, 1], gap="large")
     with left:
         st.markdown("### 📜 1. Enter your passage")
         passage = st.text_area(
