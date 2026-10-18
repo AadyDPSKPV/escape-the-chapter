@@ -74,40 +74,7 @@ st.markdown(
     }
     div.stButton > button:hover { border-color: #f6c86a; transform: translateY(-1px); }
     [data-testid="stSidebar"] { background: #0a1422; border-right: 1px solid rgba(190,210,235,.12); }
-    .small-note { font-size: .82rem; color: #aab9cc; line-height: 1.5; }
-
-    /* Readability and spacing improvements */
-    [data-testid="stSidebar"] { background: #0a1422; }
-    [data-testid="stTextArea"] textarea {
-      background: #f7f9fc !important;
-      color: #172338 !important;
-      border: 1px solid #cbd5e1 !important;
-      border-radius: 12px !important;
-      line-height: 1.55 !important;
-      font-size: 0.98rem !important;
-    }
-    [data-testid="stTextInput"] input,
-    [data-testid="stSelectbox"] div[data-baseweb="select"] > div {
-      border-radius: 11px !important;
-    }
-    [data-testid="stMarkdownContainer"] p,
-    [data-testid="stMarkdownContainer"] li {
-      line-height: 1.65;
-    }
-    [data-testid="stMetric"] {
-      background: rgba(20, 37, 59, .72);
-      border: 1px solid rgba(190,210,235,.13);
-      padding: .9rem 1rem;
-      border-radius: 14px;
-    }
-    div[data-testid="stVerticalBlock"] > div:has(> .hero) { margin-bottom: 1.25rem; }
-    .hero { padding: 1.8rem 2rem; }
-    .panel { padding: 1.25rem 1.35rem; }
-    .level-card { padding: 1.15rem; }
-    @media (max-width: 900px) {
-      .hero { padding: 1.25rem; }
-      .hero-title { font-size: 2.2rem; }
-    }
+    .small-note { font-size: .78rem; color: #9caec3; }
     </style>
     """,
     unsafe_allow_html=True,
@@ -129,7 +96,7 @@ DEFAULT_QUESTIONS = [
         "options": ["1206", "1290", "1398", "1526"],
         "answer": "1206",
         "hint": "Look at the opening sentence for the year.",
-        "evidence": "The passage says the Delhi Sultanate was established in 1206.",
+        "evidence": "The Delhi Sultanate was established in 1206 by Qutb-ud-din Aibak.",
         "explanation": "The first sentence gives 1206 as the year the Delhi Sultanate was established.",
     },
     {
@@ -138,7 +105,7 @@ DEFAULT_QUESTIONS = [
         "options": ["Qutb-ud-din Aibak", "Alauddin Khalji", "Ibrahim Lodi", "Babur"],
         "answer": "Alauddin Khalji",
         "hint": "Find the sentence that mentions market-control measures.",
-        "evidence": "The passage says Alauddin Khalji introduced market-control measures.",
+        "evidence": "Alauddin Khalji expanded the Sultanate's territory and introduced market-control measures.",
         "explanation": "The third sentence directly connects Alauddin Khalji with market-control measures.",
     },
     {
@@ -152,7 +119,7 @@ DEFAULT_QUESTIONS = [
         ],
         "answer": "Ibrahim Lodi's defeat by Babur at the First Battle of Panipat",
         "hint": "Read the final sentence and look for the event linked to 1526.",
-        "evidence": "The passage says the Delhi Sultanate ended in 1526 after Ibrahim Lodi was defeated by Babur at the First Battle of Panipat.",
+        "evidence": "The Delhi Sultanate ended in 1526 after Ibrahim Lodi was defeated by Babur at the First Battle of Panipat.",
         "explanation": "The final sentence explicitly connects the Sultanate's end with Ibrahim Lodi's defeat by Babur at Panipat.",
     },
 ]
@@ -198,7 +165,7 @@ def strip_json_fences(text: str) -> str:
     text = re.sub(r"\s*```$", "", text)
     return text.strip()
 
-def call_gemini(passage: str, subject: str, chapter_title: str) -> list[dict[str, Any]]:
+def call_gemini(passage: str, subject: str, chapter_title: str, feedback: str = "") -> list[dict[str, Any]]:
     api_key = get_api_key()
     if not api_key:
         raise RuntimeError("No Gemini API key found. Add GEMINI_API_KEY in Streamlit Secrets or environment variables.")
@@ -238,6 +205,11 @@ Chapter title: {chapter_title}
 PASSAGE START
 {passage}
 PASSAGE END
+
+Additional validation feedback from the previous attempt (if any):
+{feedback}
+
+If feedback is present, fix those specific problems. Every evidence value MUST be an exact, continuous quote from PASSAGE START to PASSAGE END, preserving the passage wording.
 """
     payload = {
         "contents": [{"parts": [{"text": prompt}]}],
@@ -352,13 +324,13 @@ with st.sidebar:
         st.success("Gemini API key detected")
     else:
         st.warning("No API key detected")
-        st.caption("You can still try the app with the built-in demo questions.")
+        st.caption("You can test the included sample passage in demo mode. Custom passages require a Gemini API key.")
     st.markdown("---")
     if st.button("↻ Reset current game", use_container_width=True):
         reset_game()
         st.rerun()
     st.markdown(
-        '<div class="small-note">Tip: use a passage with several clear facts. AI-generated content is checked for quoted evidence, but should still be reviewed.</div>',
+        '<div class="small-note">Tip: use a passage with several clear facts. Gemini can generate new questions for custom passages when an API key is configured. Demo questions are only for the included sample passage.</div>',
         unsafe_allow_html=True,
     )
 
@@ -376,14 +348,14 @@ st.markdown(
 
 # ---------- Input / mission creation ----------
 if st.session_state.questions is None:
-    left, right = st.columns([1.25, 1], gap="large")
+    left, right = st.columns([1.45, 1])
     with left:
         st.markdown("### 📜 1. Enter your passage")
         passage = st.text_area(
             "Paste a textbook passage below",
             value=st.session_state.passage,
             height=250,
-            help="For best results, use a passage containing several clear facts. Aim for about 100–800 words.",
+            help="For best results, use a passage containing several clear facts. Aim for about 100–800 words. Custom passages require Gemini AI; demo questions work only with the included sample passage.",
             label_visibility="collapsed",
         )
         st.session_state.passage = passage
@@ -405,29 +377,35 @@ if st.session_state.questions is None:
             """,
             unsafe_allow_html=True,
         )
-        use_demo = st.checkbox("Use built-in demo questions (no API required)", value=not bool(get_api_key()))
+        use_demo = st.checkbox("Use built-in demo questions (sample passage only)", value=not bool(get_api_key()))
         if st.button("⚡ Generate my escape mission", type="primary", use_container_width=True):
             if len(passage.strip()) < 80:
                 st.error("Please enter a longer passage (at least 80 characters) so the questions have enough context.")
             else:
                 with st.spinner("Preparing your escape mission..."):
                     try:
-                        if use_demo:
-                            # Demo questions are only valid for the included sample passage.
-                            if passage.strip() != EXAMPLE_PASSAGE.strip():
-                                st.warning("The built-in demo questions are specifically for the sample Delhi Sultanate passage. The sample passage has been loaded.")
-                                st.session_state.passage = EXAMPLE_PASSAGE
-                                st.session_state.chapter_title = "The Delhi Sultanate"
-                                st.session_state.subject = "History"
-                            questions, warnings = normalize_and_validate(DEFAULT_QUESTIONS, st.session_state.passage)
+                        is_sample_passage = re.sub(r"\s+", " ", passage).strip() == re.sub(r"\s+", " ", EXAMPLE_PASSAGE).strip()
+                        if use_demo and is_sample_passage:
+                            questions, warnings = normalize_and_validate(DEFAULT_QUESTIONS, passage)
                             source = "Built-in demo"
+                        elif use_demo and not get_api_key():
+                            questions, warnings = [], [
+                                "Demo mode only contains questions for the included Delhi Sultanate sample passage.",
+                                "To generate questions for your own passage, add GEMINI_API_KEY in Streamlit Secrets, then uncheck the demo option."
+                            ]
                         else:
-                            raw = call_gemini(passage, st.session_state.subject, st.session_state.chapter_title)
-                            questions, warnings = normalize_and_validate(raw, passage)
-                            source = "Gemini API"
+                            feedback = ""
+                            questions, warnings = [], []
+                            for attempt in range(2):
+                                raw = call_gemini(passage, st.session_state.subject, st.session_state.chapter_title, feedback=feedback)
+                                questions, warnings = normalize_and_validate(raw, passage)
+                                if len(questions) == 3:
+                                    break
+                                feedback = "\n".join(warnings) + "\nReturn exactly one Easy, one Medium, and one Hard question. Fix evidence quotes so each is an exact continuous substring of the supplied passage. Keep each answer identical to one of the four options."
+                            source = "Gemini AI"
                         if len(questions) != 3:
                             st.session_state.validation_report = warnings
-                            st.error("We couldn't verify three complete questions from this passage. Try a longer passage with more explicit facts, or use the built-in demo.")
+                            st.error("We couldn't verify three complete questions from this passage. Make sure your passage contains several clear facts. For custom passages, connect Gemini and turn off demo mode.")
                         else:
                             st.session_state.questions = questions
                             st.session_state.question_source = source
