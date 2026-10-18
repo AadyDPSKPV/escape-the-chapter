@@ -169,7 +169,7 @@ def call_gemini(passage: str, subject: str, chapter_title: str, feedback: str = 
     api_key = get_api_key()
     if not api_key:
         raise RuntimeError("No Gemini API key found. Add GEMINI_API_KEY in Streamlit Secrets or environment variables.")
-    model = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+    model = os.getenv("GEMINI_MODEL", "gemini-3.8-flash")
     url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
     prompt = f"""
 You are a careful educational quiz designer. Use ONLY the supplied passage. Do not use outside knowledge.
